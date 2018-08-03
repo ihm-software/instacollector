@@ -3,48 +3,37 @@
 #GLOBAL VARIABLES
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 INFO_DIR=/tmp/InstaCollection_$(date +%Y%m%d%H%M)
+ENV_NAME=`kubectl config get-contexts -o name`
 
-#Collect user info.
-read -p "Enter username for login on Cassandra cluster nodes (Press Enter for default admin) :" user
-[ -z "${user}" ] && user='admin'
+kubectl get pods | grep ihm-inventory-cassandra | awk '{print $1;}' > peers_file
 
-read -p "Enter Identity file path:" id_file
-if [[ ! -f ${id_file} || ! -s ${id_file} ]]; then
-    echo "$id_file File not found!" 
-    exit 1
-fi
-
-read -p "Enter file containing ip addresses/host names of Cassandra cluster nodes:" peers_file
-if [[ ! -f ${peers_file} || ! -s ${peers_file} ]]; then
-    echo "$peers_file File not found!"
-    exit 1
-fi
-
-#Execute the node_collector on each node
-while read peer 
-do 
-        ssh -i $id_file $user@$peer "bash -s" < node_collector.sh &
-done < "$peers_file"
-
-#waiting for all node_collectors to complete
 wait
 
 mkdir $INFO_DIR
 
-#copy the data from each node
-while read peer 
-do 
+echo "Found these pods"
+cat peers_file
+
+#Execute the node_collector on each node
+while read -r peer
+do
+    echo "Starting pod $peer"
+    kubectl exec -t $peer -- sh -c `cat node_collector.sh`
+    sleep 10
+    echo "Finished pod $peer"
+    echo "Getting files from $peer"
     mkdir $INFO_DIR/$peer
-    scp -i $id_file $user@$peer:/tmp/InstaCollection.tar.gz $INFO_DIR/$peer/InstaCollection_$peer.tar.gz &
+    kubectl cp $peer:/tmp/InstaCollection.tar.gz $INFO_DIR/$peer/InstaCollection_$peer.tar.gz
+    echo "Finished getting files from $peer"
+done < peers_file
 
-done < "$peers_file"
-
-#waiting for all scp to complete
+#waiting for all node_collectors to complete
 wait
 
 #compress the info directory 
-result_file=/tmp/InstaCollection_$(date +%Y%m%d%H%M).tar.gz
+result_file=./InstaCollection_$(echo $ENV_NAME)_$(date +%Y%m%d%H%M).tar.gz
 tar -zcf $result_file -C $INFO_DIR .
 rm -r $INFO_DIR
+rm peers_file
 
 echo "Process complete. File generated : " $result_file

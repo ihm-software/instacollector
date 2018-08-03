@@ -1,12 +1,18 @@
 #!/bin/bash
 
+#Install requirements
+apt update
+apt install sysstat -y
+wait
+
 #The file location values used are for apache Cassandra defaults. 
 #Change these in case other than default.
 CONFIG_PATH=/etc/cassandra
-LOG_PATH=/var/log/cassandra
-DATA_PATH=/var/lib/cassandra/data
+LOG_PATH=/cassandra_data/log
+DATA_PATH=/cassandra_data
 GC_LOGGING_ENABLED=yes
-CASSANDRA_HOME=/var/lib/cassandra
+CASSANDRA_VERSION=3.11.2
+CASSANDRA_HOME=/usr/local/apache-cassandra-${CASSANDRA_VERSION}
 GC_LOG_PATH=${CASSANDRA_HOME}/logs
 
 #Variables to hold data collection and system info.
@@ -86,3 +92,4 @@ wait
 tar -zcf /tmp/InstaCollection.tar.gz -C $data_dir .
 
 echo "$ip : Process Complete."
+wait
