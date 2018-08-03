@@ -15,11 +15,11 @@ echo "Found these pods"
 cat peers_file
 
 #Execute the node_collector on each node
-while read -r peer
+for peer in $(cat peers_file);
 do
     echo "Starting pod $peer"
-    kubectl exec -t $peer -- sh -c `cat node_collector.sh`
-    sleep 10
+    kubectl cp node_collector.sh $peer:/node_collector.sh
+    kubectl exec -it $peer -- bash node_collector.sh
     echo "Finished pod $peer"
     echo "Getting files from $peer"
     mkdir $INFO_DIR/$peer
@@ -32,7 +32,7 @@ wait
 
 #compress the info directory 
 result_file=./InstaCollection_$(echo $ENV_NAME)_$(date +%Y%m%d%H%M).tar.gz
-tar -zcf $result_file -C $INFO_DIR .
+tar -zvcf $result_file -C $INFO_DIR .
 rm -r $INFO_DIR
 rm peers_file
 

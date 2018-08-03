@@ -24,6 +24,7 @@ io_stats_file=$data_dir/io_stat.info
 copy_config_files()
 {
 echo "$ip : Copying files"
+
 local config_files=("$CONFIG_PATH/cassandra.yaml" "$CONFIG_PATH/cassandra-env.sh" "$LOG_PATH/system.log" "$CONFIG_PATH/jvm.options")
 
 if [ "$GC_LOGGING_ENABLED" == "yes" ]
@@ -69,6 +70,7 @@ do
     local cmd_file=$data_dir/"${i// /_}".info
     echo "" >> $cmd_file
     eval $i >> $cmd_file
+    echo $i
 done
 
 }
@@ -89,7 +91,7 @@ echo "$ip : Waiting for background functions to complete"
 wait
 
 #compress the info directory 
-tar -zcf /tmp/InstaCollection.tar.gz -C $data_dir .
+tar -zvcf /tmp/InstaCollection.tar.gz -C $data_dir . || true
 
 echo "$ip : Process Complete."
 wait
